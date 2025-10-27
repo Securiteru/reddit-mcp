@@ -112,10 +112,31 @@ export interface SubmitPostParams {
   title: string;
   text?: string;
   url?: string;
+  image_url?: string; // URL to an image to upload and post
   flair_id?: string;
   nsfw?: boolean;
   spoiler?: boolean;
   send_replies?: boolean;
+}
+
+export interface RedditMediaAsset {
+  asset_id: string;
+  processing_state: string;
+  payload: {
+    filepath: string;
+  };
+  websocket_url: string;
+}
+
+export interface RedditMediaUploadLease {
+  asset: RedditMediaAsset;
+  upload_lease: {
+    action: string;
+    fields: Array<{
+      name: string;
+      value: string;
+    }>;
+  };
 }
 
 export interface SubmitCommentParams {

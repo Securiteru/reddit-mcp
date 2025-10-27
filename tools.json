@@ -132,7 +132,7 @@
   },
   {
     "name": "reddit_submit_post",
-    "description": "Submit a new post to a subreddit",
+    "description": "Submit a new post to a subreddit (text, link, or image)",
     "arguments": [
       {
         "name": "subreddit",
@@ -153,6 +153,11 @@
         "name": "url",
         "type": "string",
         "desc": "URL (for link posts)"
+      },
+      {
+        "name": "image_url",
+        "type": "string",
+        "desc": "URL to an image to upload and post (for image posts)"
       },
       {
         "name": "nsfw",

@@ -2,34 +2,117 @@
  * Reddit writing tools - submit posts, comments, votes, etc.
  */
 
-import { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import {
   SubmitPostParams,
   SubmitCommentParams,
   VoteParams,
+  RedditMediaUploadLease,
 } from '../types/reddit.js';
 import { parseRedditError } from '../utils/error-handler.js';
+import FormData from 'form-data';
 
 export class RedditWriteTools {
   constructor(private readonly client: AxiosInstance) {}
+
+  /**
+   * Upload an image to Reddit's media service
+   * @param imageUrl - URL of the image to upload
+   * @returns The media asset URL to use in post submission
+   */
+  private async uploadImage(imageUrl: string): Promise<string> {
+    try {
+      // Step 1: Fetch the image
+      const imageResponse = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
+      });
+      const imageBuffer = Buffer.from(imageResponse.data);
+
+      // Determine mimetype from Content-Type header or URL extension
+      let mimetype = imageResponse.headers['content-type'] || 'image/jpeg';
+      if (!mimetype.startsWith('image/')) {
+        const ext = imageUrl.split('.').pop()?.toLowerCase();
+        mimetype = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+      }
+
+      // Step 2: Request upload lease from Reddit
+      const leaseResponse = await this.client.post<RedditMediaUploadLease>(
+        '/api/media/asset.json',
+        new URLSearchParams({
+          filepath: `image.${mimetype.split('/')[1]}`,
+          mimetype: mimetype,
+        }).toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
+
+      const lease = leaseResponse.data;
+      const uploadUrl = lease.upload_lease.action;
+      const fields = lease.upload_lease.fields;
+
+      // Step 3: Upload image to S3
+      const formData = new FormData();
+
+      // Add all fields from the lease
+      fields.forEach((field) => {
+        formData.append(field.name, field.value);
+      });
+
+      // Add the file
+      formData.append('file', imageBuffer, {
+        filename: `image.${mimetype.split('/')[1]}`,
+        contentType: mimetype,
+      });
+
+      await axios.post(uploadUrl, formData, {
+        headers: {
+          ...formData.getHeaders(),
+        },
+      });
+
+      // Return the media asset URL
+      return lease.asset.asset_id;
+    } catch (error) {
+      throw parseRedditError(error);
+    }
+  }
 
   /**
    * Submit a new post to a subreddit
    */
   async submitPost(params: SubmitPostParams): Promise<{ id: string; name: string; url: string }> {
     try {
+      // Upload image if provided
+      let mediaAssetId: string | undefined;
+      if (params.image_url) {
+        mediaAssetId = await this.uploadImage(params.image_url);
+      }
+
+      // Determine post kind
+      let kind = 'self';
+      if (mediaAssetId) {
+        kind = 'image';
+      } else if (params.url) {
+        kind = 'link';
+      }
+
       const formData = new URLSearchParams({
         api_type: 'json',
         sr: params.subreddit,
         title: params.title,
-        kind: params.url ? 'link' : 'self',
+        kind: kind,
         sendreplies: String(params.send_replies ?? true),
         nsfw: String(params.nsfw ?? false),
         spoiler: String(params.spoiler ?? false),
       });
 
       // Add content based on type
-      if (params.url) {
+      if (mediaAssetId) {
+        formData.append('url', mediaAssetId);
+      } else if (params.url) {
         formData.append('url', params.url);
       } else if (params.text) {
         formData.append('text', params.text);

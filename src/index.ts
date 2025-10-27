@@ -189,7 +189,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'reddit_submit_post',
-    description: 'Submit a new post to a subreddit',
+    description: 'Submit a new post to a subreddit (text, link, or image)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -208,6 +208,10 @@ const TOOLS: Tool[] = [
         url: {
           type: 'string',
           description: 'URL to link to (for link posts)',
+        },
+        image_url: {
+          type: 'string',
+          description: 'URL to an image to upload and post (for image posts)',
         },
         nsfw: {
           type: 'boolean',
