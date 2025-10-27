@@ -40,6 +40,16 @@ test*.js
 docker-test.js
 docker-mcp-test.js
 verify-post.ts
+post-*.ts
+post-*.js
+
+# Test images and data
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+scenester.*
 
 # Temporary files
 *.tmp
