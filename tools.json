@@ -132,7 +132,7 @@
   },
   {
     "name": "reddit_submit_post",
-    "description": "Submit a new post to a subreddit (text, link, or image)",
+    "description": "Submit a new post to a subreddit (text, link, or image). For images, provide either image_url (remote) or image_data (base64 encoded local file)",
     "arguments": [
       {
         "name": "subreddit",
@@ -157,7 +157,17 @@
       {
         "name": "image_url",
         "type": "string",
-        "desc": "URL to an image to upload and post (for image posts)"
+        "desc": "URL to an image to download and post (for remote images)"
+      },
+      {
+        "name": "image_data",
+        "type": "string",
+        "desc": "Base64 encoded image data (for local files). Will be uploaded to free hosting service (Catbox.moe or ImgBB) then posted to Reddit"
+      },
+      {
+        "name": "image_filename",
+        "type": "string",
+        "desc": "Original filename with extension (required when using image_data). Example: photo.jpg"
       },
       {
         "name": "nsfw",

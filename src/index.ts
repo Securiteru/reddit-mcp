@@ -34,6 +34,7 @@ const redditConfig: RedditConfig = {
   username: process.env.REDDIT_USERNAME,
   password: process.env.REDDIT_PASSWORD,
   refreshToken: process.env.REDDIT_REFRESH_TOKEN,
+  imgbbApiKey: process.env.IMGBB_API_KEY,
   rateLimitPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || '60', 10),
   maxRetries: parseInt(process.env.MAX_RETRIES || '3', 10),
 };
@@ -189,7 +190,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'reddit_submit_post',
-    description: 'Submit a new post to a subreddit (text, link, or image)',
+    description: 'Submit a new post to a subreddit (text, link, or image). For images, provide either image_url (remote) or image_data (base64 encoded local file)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -211,7 +212,15 @@ const TOOLS: Tool[] = [
         },
         image_url: {
           type: 'string',
-          description: 'URL to an image to upload and post (for image posts)',
+          description: 'URL to an image to download and post (for remote images)',
+        },
+        image_data: {
+          type: 'string',
+          description: 'Base64 encoded image data (for local files). Will be uploaded to free hosting service (Catbox.moe or ImgBB) then posted to Reddit',
+        },
+        image_filename: {
+          type: 'string',
+          description: 'Original filename with extension (required when using image_data). Example: photo.jpg',
         },
         nsfw: {
           type: 'boolean',
@@ -369,7 +378,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     );
 
     const readTools = new RedditReadTools(client);
-    const writeTools = new RedditWriteTools(client);
+    const writeTools = new RedditWriteTools(client, redditConfig.imgbbApiKey);
 
     // Execute the requested tool
     let result: any;

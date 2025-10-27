@@ -9,6 +9,7 @@ export interface RedditConfig {
   username?: string;
   password?: string;
   refreshToken?: string;
+  imgbbApiKey?: string;
   rateLimitPerMinute: number;
   maxRetries: number;
 }
@@ -112,7 +113,9 @@ export interface SubmitPostParams {
   title: string;
   text?: string;
   url?: string;
-  image_url?: string; // URL to an image to upload and post
+  image_url?: string; // URL to an image to download and upload
+  image_data?: string; // Base64 encoded image data (for local files)
+  image_filename?: string; // Original filename (when using image_data)
   flair_id?: string;
   nsfw?: boolean;
   spoiler?: boolean;

@@ -10,10 +10,14 @@ import {
   RedditMediaUploadLease,
 } from '../types/reddit.js';
 import { parseRedditError } from '../utils/error-handler.js';
+import { uploadImage } from '../utils/image-upload.js';
 import FormData from 'form-data';
 
 export class RedditWriteTools {
-  constructor(private readonly client: AxiosInstance) {}
+  constructor(
+    private readonly client: AxiosInstance,
+    private readonly imgbbApiKey?: string
+  ) {}
 
   /**
    * Upload an image to Reddit's media service
@@ -85,10 +89,26 @@ export class RedditWriteTools {
    */
   async submitPost(params: SubmitPostParams): Promise<{ id: string; name: string; url: string }> {
     try {
-      // Upload image if provided
+      let finalImageUrl: string | undefined;
+
+      // Handle base64 image data (local files)
+      if (params.image_data) {
+        console.log('Uploading base64 image to hosting service...');
+        const imageBuffer = Buffer.from(params.image_data, 'base64');
+        const filename = params.image_filename || 'image.jpg';
+
+        const uploadResult = await uploadImage(imageBuffer, filename, this.imgbbApiKey);
+        finalImageUrl = uploadResult.url;
+        console.log(`Image uploaded to ${uploadResult.service}: ${finalImageUrl}`);
+      } else if (params.image_url) {
+        // Use provided URL directly
+        finalImageUrl = params.image_url;
+      }
+
+      // Upload image to Reddit if we have a URL
       let mediaAssetId: string | undefined;
-      if (params.image_url) {
-        mediaAssetId = await this.uploadImage(params.image_url);
+      if (finalImageUrl) {
+        mediaAssetId = await this.uploadImage(finalImageUrl);
       }
 
       // Determine post kind
