@@ -1,0 +1,95 @@
+registry:
+    reddit:
+        dateAdded: "2025-10-27T00:00:00Z"
+        description: Reddit MCP Server - Read and write Reddit posts, comments, and interact with subreddits through the Reddit API
+        icon: https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png
+        metadata:
+            category: social
+            license: MIT
+            owner: Securiteru
+            tags:
+                - reddit
+                - social-media
+                - api
+                - content
+        prompts: 0
+        readme: ""
+        ref: ""
+        resources: {}
+        secrets:
+            - env: REDDIT_CLIENT_ID
+              example: your_reddit_client_id
+              name: reddit.client_id
+            - env: REDDIT_CLIENT_SECRET
+              example: your_reddit_client_secret
+              name: reddit.client_secret
+            - env: REDDIT_USERNAME
+              example: your_reddit_username
+              name: reddit.username
+            - env: REDDIT_PASSWORD
+              example: your_reddit_password
+              name: reddit.password
+            - env: REDDIT_USER_AGENT
+              example: "mcp:reddit-mcp:1.0.0 (by /u/your_username)"
+              name: reddit.user_agent
+        source: ""
+        title: Reddit
+        tools:
+            - name: reddit_get_post
+              description: Get a Reddit post by ID
+            - name: reddit_get_comments
+              description: Get comments for a Reddit post
+            - name: reddit_search_posts
+              description: Search for Reddit posts
+            - name: reddit_get_subreddit_posts
+              description: Get posts from a subreddit
+            - name: reddit_get_subreddit_info
+              description: Get information about a subreddit
+            - name: reddit_get_user_content
+              description: Get a user's posts and comments
+            - name: reddit_submit_post
+              description: Submit a new post to a subreddit
+            - name: reddit_submit_comment
+              description: Submit a comment on a post or reply to another comment
+            - name: reddit_edit_content
+              description: Edit a post or comment
+            - name: reddit_delete_content
+              description: Delete a post or comment
+            - name: reddit_vote
+              description: Vote on a post or comment
+            - name: reddit_save
+              description: Save a post or comment
+            - name: reddit_unsave
+              description: Unsave a post or comment
+        toolsUrl: ""
+        type: server
+        image: reddit-mcp:latest
+        command:
+            - node
+            - dist/index.js
+        config:
+            - description: Configure Reddit API credentials
+              name: reddit
+              properties:
+                client_id:
+                    type: string
+                    description: Reddit app client ID
+                client_secret:
+                    type: string
+                    description: Reddit app client secret
+                username:
+                    type: string
+                    description: Reddit username
+                password:
+                    type: string
+                    description: Reddit password
+                user_agent:
+                    type: string
+                    description: User agent string for API requests
+              required:
+                - client_id
+                - client_secret
+                - username
+                - password
+                - user_agent
+              type: object

@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "reddit": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/reddit-mcp/dist/index.js"
+      ],
+      "env": {
+        "REDDIT_CLIENT_ID": "your_client_id_here",
+        "REDDIT_CLIENT_SECRET": "your_client_secret_here",
+        "REDDIT_USERNAME": "your_reddit_username",
+        "REDDIT_PASSWORD": "your_reddit_password",
+        "REDDIT_USER_AGENT": "mcp:reddit-mcp:1.0.0 (by /u/your_username)",
+        "RATE_LIMIT_PER_MINUTE": "60",
+        "MAX_RETRIES": "3",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}

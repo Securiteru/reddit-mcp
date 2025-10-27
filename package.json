@@ -1,0 +1,44 @@
+{
+  "name": "reddit-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Reddit API integration - read and write posts and comments",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "keywords": [
+    "mcp",
+    "reddit",
+    "api",
+    "model-context-protocol"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.17.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
