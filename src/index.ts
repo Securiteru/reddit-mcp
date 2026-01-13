@@ -7,11 +7,13 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
+import express from 'express';
 import { config } from 'dotenv';
 import { RedditAuth } from './auth/reddit-auth.js';
 import { RedditReadTools } from './tools/read.js';
@@ -432,6 +434,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           title: args.title as string,
           text: args.text as string,
           url: args.url as string,
+          image_url: args.image_url as string,
+          image_data: args.image_data as string,
+          image_filename: args.image_filename as string,
           nsfw: args.nsfw as boolean,
           spoiler: args.spoiler as boolean,
         });
@@ -500,9 +505,122 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Start the server
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('Reddit MCP Server running on stdio');
+  const transport = process.env.MCP_TRANSPORT || 'stdio';
+  
+  if (transport === 'sse') {
+    // SSE transport for HTTP/network access
+    const app = express();
+
+    // Add CORS headers for n8n communication
+    app.use((_req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.header('Access-Control-Max-Age', '86400');
+      next();
+    });
+
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.text({ type: '*/*', limit: '10mb' }));
+    const PORT = parseInt(process.env.PORT || '3000', 10);
+    
+    // Create ONE server instance that we reuse
+    console.error('Initializing MCP Server for SSE...');
+    
+    // Store active SSE transports by session ID
+    const activeTransports = new Map<string, any>();
+    
+    app.get('/sse', async (_req, res) => {
+      console.error('📡 New SSE connection established');
+
+      // Create SSE transport for this connection
+      // The SDK automatically generates a session ID that we can access
+      const sseTransport = new SSEServerTransport('/message', res);
+
+      // Access the session ID from the transport (it's a private property but accessible)
+      const sessionId = (sseTransport as any)._sessionId;
+      console.error(`📍 Session ID: ${sessionId}`);
+
+      // Store transport BEFORE connecting
+      activeTransports.set(sessionId, sseTransport);
+      console.error(`💾 Stored transport in activeTransports`);
+
+      // Connect server to this transport
+      try {
+        await server.connect(sseTransport);
+        console.error('✅ Server connected to SSE transport');
+      } catch (error) {
+        console.error('❌ Error connecting server:', error);
+        activeTransports.delete(sessionId);
+        return;
+      }
+
+      // Clean up on close
+      res.on('close', () => {
+        console.error(`🔌 SSE connection closed - Session: ${sessionId}`);
+        activeTransports.delete(sessionId);
+      });
+    });
+    
+    app.post('/message', async (req, res) => {
+      const sessionId = req.query.sessionId as string;
+      const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+
+      console.error(`📨 Received message - Session ID: ${sessionId || 'MISSING'}`);
+      console.error(`   Request URL: ${req.url}`);
+      console.error(`   Query params:`, req.query);
+      console.error(`   Message: ${body.substring(0, 200)}`);
+      console.error(`📊 Active sessions: [${Array.from(activeTransports.keys()).join(', ')}]`);
+
+      // If no session ID in query, try to find the most recent transport (fallback)
+      let transport = sessionId ? activeTransports.get(sessionId) : null;
+
+      if (!transport && activeTransports.size === 1) {
+        // If there's only one active session and no sessionId provided, use it
+        const [firstTransport] = Array.from(activeTransports.values());
+        transport = firstTransport;
+        console.error(`⚡ Using fallback: single active transport (no sessionId in request)`);
+      }
+
+      if (transport && typeof transport.handlePostMessage === 'function') {
+        console.error(`🔄 Processing message with transport`);
+        try {
+          // Pass the already-parsed body as the third parameter to avoid stream reading
+          const parsedBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+          await transport.handlePostMessage(req, res, parsedBody);
+          console.error(`✅ Message processed successfully`);
+          return;
+        } catch (error) {
+          console.error(`❌ Error processing message:`, error);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: 'Internal server error', details: String(error) });
+          }
+          return;
+        }
+      } else {
+        console.error(`⚠️ No transport found - sessionId: ${sessionId}, activeCount: ${activeTransports.size}`);
+        if (!res.headersSent) {
+          return res.status(404).json({
+            error: 'No active MCP session',
+            providedSessionId: sessionId || null,
+            activeSessions: Array.from(activeTransports.keys()),
+            hint: 'Client must first establish SSE connection to /sse endpoint'
+          });
+        }
+        return;
+      }
+    });
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.error(`✅ Reddit MCP Server listening on port ${PORT}`);
+      console.error(`📍 SSE Endpoint: http://localhost:${PORT}/sse`);
+    });
+  } else {
+    // Default: stdio transport
+    const stdioTransport = new StdioServerTransport();
+    await server.connect(stdioTransport);
+    console.error('Reddit MCP Server running on stdio');
+  }
 }
 
 main().catch((error) => {
